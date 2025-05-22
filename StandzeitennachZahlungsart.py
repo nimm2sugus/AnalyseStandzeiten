@@ -12,6 +12,10 @@ def load_excel_file(uploaded_file):
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
 
+# Streamlit-Seitenlayout
+st.set_page_config(page_title="Analyse Standzeiten", layout="wide")
+st.title("Analyse Standzeiten")
+
 # Datei-Upload
 uploaded_file = st.file_uploader("📁 Bereinigte Excel-Datei hochladen", type=["xlsx", "xls"])
 
@@ -45,10 +49,8 @@ if uploaded_file is not None:
         st.dataframe(grouped, use_container_width=True)
 
         groupedby_authtyp = df.groupby('Auth. Typ', as_index=False).agg(
-            Ladezeit_h=('Ladezeit_h', 'mean')
+            Ladezeit_h=('Ladezeit_h', 'mean'),
+            Verbrauch_kWh_mean=('Verbrauch_kWh', 'mean')
         )
-        
+
         st.write(groupedby_authtyp, use_container_width=True)
-
-
-
