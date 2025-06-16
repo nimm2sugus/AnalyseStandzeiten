@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import re
 
 # Funktion zum Laden der Excel-Datei
 @st.cache_data
@@ -11,6 +12,22 @@ def load_excel_file(uploaded_file):
     except Exception as e:
         st.error(f"Fehler beim Laden der Datei: {e}")
         return None
+
+# Hilfsfunktion zum Parsen von "1 Stunde 5 Minuten 3 Sekunden"
+def parse_standzeit(zeit_string):
+    if pd.isna(zeit_string):
+        return None
+    stunden = minuten = sekunden = 0
+    match_stunden = re.search(r"(\d+)\s*Stunde", zeit_string)
+    match_minuten = re.search(r"(\d+)\s*Minute", zeit_string)
+    match_sekunden = re.search(r"(\d+)\s*Sekunde", zeit_string)
+    if match_stunden:
+        stunden = int(match_stunden.group(1))
+    if match_minuten:
+        minuten = int(match_minuten.group(1))
+    if match_sekunden:
+        sekunden = int(match_sekunden.group(1))
+    return stunden + minuten / 60 + sekunden / 3600
 
 # Streamlit-Seitenlayout
 st.set_page_config(page_title="Analyse Standzeiten", layout="wide")
@@ -33,6 +50,9 @@ if uploaded_file is not None:
         df['Ladezeit_h'] = (df['Beendet'] - df['Gestartet']).dt.total_seconds() / 3600.0
         df['P_Schnitt'] = df['Verbrauch_kWh'] / df['Ladezeit_h']
 
+        # Standzeit als Stundenwert berechnen
+        df['Standzeit_h'] = df['Standzeit'].apply(parse_standzeit)
+
         df['Jahr'] = df['Beendet'].dt.year
         df['Monat_num'] = df['Beendet'].dt.month
         df['Tag'] = df['Beendet'].dt.day
@@ -42,7 +62,7 @@ if uploaded_file is not None:
 
         grouped = df.groupby('Standortname', as_index=False).agg(
             Verbrauch_kWh_mean=('Verbrauch_kWh', 'mean'),
-            Ladezeit_h=('Ladezeit_h', 'mean'),
+            Standzeit_h=('Standzeit_h', 'mean'),
             Anzahl_Ladevorgaenge=('Verbrauch_kWh', 'count')
         )
         st.subheader("🔢 Allgemeine KPIs nach Standort")
